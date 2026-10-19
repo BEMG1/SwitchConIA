@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cisco Switch Terminal & Network Lab Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+  <!-- Top Navigation & Header -->
+  <header class="navbar flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="logo-box flex items-center justify-center p-2 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          Cisco SwitchLab Pro
+          <span class="badge text-xs px-2 py-0.5 rounded-full font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">v2.0 L2/L3 Simulator</span>
+        </h1>
+        <p class="text-xs text-slate-400">Entorno virtual de conmutación con casos reales y resolución de problemas</p>
+      </div>
+    </div>
+
+    <!-- Score, Streak & Scenario Selector -->
+    <div class="flex items-center gap-3">
+      <!-- Score & Streak Widget -->
+      <div class="flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/80 shadow-inner">
+        <div class="flex items-center gap-1.5 border-r border-slate-700 pr-2.5">
+          <span class="text-amber-400 text-sm">🏆</span>
+          <div class="flex flex-col">
+            <span class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Puntos</span>
+            <span id="scoreDisplay" class="font-mono font-bold text-sm text-amber-400 leading-none">100</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 pl-1">
+          <span class="text-orange-500 text-sm">🔥</span>
+          <div class="flex flex-col">
+            <span class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Racha</span>
+            <span id="streakDisplay" class="font-mono font-bold text-xs text-orange-400 leading-none">0</span>
+          </div>
+        </div>
+        <div id="scoreDeltaBadge" class="hidden text-[11px] font-mono font-bold px-1.5 py-0.5 rounded transition-all"></div>
+      </div>
+
+      <div class="scenario-selector-wrap flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700/60">
+        <label for="scenarioSelect" class="text-xs font-semibold text-slate-300 px-2 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Laboratorio:
+        </label>
+        <select id="scenarioSelect" class="bg-slate-900 text-sm text-cyan-300 font-medium rounded-lg px-3 py-1.5 border border-slate-700 focus:outline-none focus:border-cyan-500 transition-colors">
+          <!-- Dynamically populated -->
+        </select>
+      </div>
+      <button id="resetLabBtn" class="btn btn-secondary text-xs px-3 py-2 rounded-lg font-semibold flex items-center gap-1.5 hover:bg-slate-700 transition" title="Reiniciar el laboratorio a su estado inicial">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Reiniciar Lab
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace Layout -->
+  <div class="flex-1 grid-cols-12">
+    <!-- Left Sidebar: Lab Description & Live Validation Objectives -->
+    <aside class="col-span-12 lg:col-span-4 border-r border-slate-800 bg-slate-900/50 flex flex-col p-5 space-y-5">
+      <!-- Scenario Title Card -->
+      <div class="scenario-card p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700/60 shadow-xl">
+        <div class="flex items-center justify-between mb-2">
+          <span id="scenarioCategory" class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/60 px-2.5 py-1 rounded-md border border-cyan-800/40">VLANs</span>
+          <span id="scenarioDifficulty" class="text-xs px-2.5 py-1 rounded-md font-semibold text-amber-400 bg-amber-950/40 border border-amber-800/40">Principiante</span>
+        </div>
+        <h2 id="scenarioTitle" class="text-lg font-bold text-white mb-2 leading-snug">Cargando escenario...</h2>
+        <p id="scenarioDesc" class="text-xs text-slate-300 leading-relaxed"></p>
+      </div>
+
+      <!-- Live Topology Diagram -->
+      <div class="topology-box p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+            </svg>
+            Topología & Estado del Switch
+          </h3>
+          <span id="topoStatusBadge" class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">L2/L3 Switch</span>
+        </div>
+        <div id="topologyView" class="relative bg-slate-950 p-4 rounded-xl border border-slate-800/80 min-h-[140px] flex flex-col justify-center items-center">
+          <!-- Dynamically updated visual switch topology -->
+        </div>
+      </div>
+
+      <!-- Objectives / Problem Checklist -->
+      <div class="objectives-box p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex-1">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Validación de Objetivos en Tiempo Real
+          </h3>
+          <span id="progressBadge" class="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/50">0%</span>
+        </div>
+        <ul id="objectivesList" class="space-y-2.5 text-xs text-slate-300">
+          <!-- Rendered dynamically with checkmarks -->
+        </ul>
+
+        <!-- Solution Banner (shows when completed) -->
+        <div id="congratsBanner" class="hidden mt-4 p-3 bg-gradient-to-r from-emerald-900/80 to-teal-900/80 border border-emerald-500/50 rounded-xl text-center shadow-lg">
+          <div class="text-emerald-300 font-bold text-sm flex items-center justify-center gap-1.5">
+            🎉 ¡Caso Resuelto con Éxito!
+          </div>
+          <p class="text-xs text-emerald-200/80 mt-1">Has aplicado la configuración y corregido el problema técnico correctamente.</p>
+        </div>
+      </div>
+
+      <!-- Quick Command Cheatsheet / Tips -->
+      <div class="hints-box">
+        <button id="toggleHintsBtn" type="button">
+          <span class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Pistas y Comandos Clave del Caso</span>
+          </span>
+          <span id="hintsChevron" class="text-xs text-slate-400">▼</span>
+        </button>
+        <div id="hintsContent" class="hidden px-4 pb-4 pt-1 space-y-2 border-t border-slate-800/80">
+          <!-- Dynamic hints -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center/Right: Interactive Cisco Switch Console Terminal -->
+    <main class="col-span-12 lg:col-span-8 bg-slate-950">
+      <!-- Terminal Header / Toolbar -->
+      <div class="terminal-header px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="flex gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+          </div>
+          <span class="text-xs font-mono text-slate-300 ml-2 font-medium flex items-center gap-2">
+            <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path>
+            </svg>
+            Consola Switch Cisco IOS (PuTTY / SecureCRT Session)
+          </span>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="flex items-center gap-1.5">
+          <button id="btnQuickShowRun" class="quick-btn text-[11px] font-mono px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+            sh run
+          </button>
+          <button id="btnQuickShowVlan" class="quick-btn text-[11px] font-mono px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+            sh vlan brief
+          </button>
+          <button id="btnQuickShowTrunk" class="quick-btn text-[11px] font-mono px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+            sh int trunk
+          </button>
+          <button id="btnQuickShowIp" class="quick-btn text-[11px] font-mono px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+            sh ip int br
+          </button>
+          <button id="btnClearTerm" class="quick-btn text-[11px] font-mono px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition">
+            clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Terminal Output Screen -->
+      <div id="terminalScreen" class="terminal-body p-4 font-mono text-sm leading-relaxed text-emerald-400 selection:bg-cyan-900 selection:text-white">
+        <!-- Lines printed here -->
+      </div>
+
+      <!-- Terminal Input Line -->
+      <div class="terminal-input-bar bg-slate-900/90 border-t border-slate-800 px-4 py-3 flex items-center gap-2">
+        <span id="promptLabel" class="font-mono text-cyan-400 font-bold select-none whitespace-nowrap">Switch></span>
+        <input 
+          id="cmdInput" 
+          type="text" 
+          autocomplete="off" 
+          autocorrect="off" 
+          autocapitalize="off" 
+          spellcheck="false"
+          placeholder="Escribe un comando Cisco IOS (ej: enable, show vlan brief, conf t)..."
+          class="flex-1 bg-transparent border-0 outline-none font-mono text-slate-100 placeholder-slate-600 text-sm focus:ring-0"
+        />
+        <div class="flex items-center gap-1 text-[11px] text-slate-500 font-mono">
+          <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-400">Enter</kbd> Ejecutar
+          <kbd class="ml-1.5 px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-400">?</kbd> Ayuda
+          <kbd class="ml-1.5 px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-400">↑↓</kbd> Historial
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Level Completed Modal -->
+  <div id="levelCompleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop transition-opacity">
+    <div class="modal-card text-center animate-modal-pop">
+      <!-- Glow effect -->
+      <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Icon / Trophy Badge -->
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center text-3xl shadow-inner">
+        🏆
+      </div>
+
+      <div class="inline-block px-3 py-1 mb-3 rounded-full text-[11px] font-mono font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+        ¡Nivel Completado!
+      </div>
+
+      <h3 id="modalLevelTitle" class="text-xl font-extrabold text-white mb-2 leading-snug">
+        ¡Excelente Trabajo!
+      </h3>
+      <p id="modalLevelDesc" class="text-xs text-slate-300 leading-relaxed mb-5">
+        Has cumplido todos los objetivos de configuración y verificado la conectividad correctamente.
+      </p>
+
+      <!-- Stats Box -->
+      <div class="grid grid-cols-2 gap-3 modal-stats-box mb-6 text-left">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Puntuación</span>
+          <span id="modalScoreDisplay" class="font-mono text-base font-bold text-amber-400">100 pts</span>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Racha Actual</span>
+          <span id="modalStreakDisplay" class="font-mono text-base font-bold text-orange-400">🔥 0</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-3">
+        <button id="modalResetBtn" class="flex-1 px-4 py-2.5 rounded-xl btn-modal-reset text-xs flex items-center justify-center gap-2">
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Reiniciar
+        </button>
+        <button id="modalNextBtn" class="flex-1 px-4 py-2.5 rounded-xl btn-modal-next text-xs flex items-center justify-center gap-2">
+          <span>Avanzar</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
